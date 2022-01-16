@@ -14,11 +14,13 @@ let app = express();
 	app.use(cors());
 	app.use(bodyParser.json());
 
+	let dbString = config.get("dbString");
 	let prod = config.get("prod");
 
 	console.time("bootstrapped");
 	try {
 		await mainLoader.loadSources();
+		await mainLoader.initDB(dbString);
 		console.timeEnd("bootstrapped");
 	} catch (error) {
 		console.error(error);

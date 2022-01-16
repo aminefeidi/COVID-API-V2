@@ -1,5 +1,10 @@
 {
     "prod":true,
     "jhuBaseUrl": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_",
-    "wmUrl":"https://www.worldometers.info/coronavirus"
+    "wmUrl":"https://www.worldometers.info/coronavirus",
+    
+    "dbString":"mongodb+srv://user:private47@cluster0-xuu8p.mongodb.net/corona-v2?retryWrites=true&w=majority",
+    "ipStackPrivateKey":"a191dd5352de08c64c612cd5c401ea5f",
+    "publicVAPID":"BBHFQmwZfXDS3hr9_rnJq-xeLgTdjdtexMbtN2dpRihTbI_KYtrF1EXRwpjlJgTMtVUKmh4FsldrBg-D2Xy55JQ",
+    "privateVAPID":"OiuCN-f77L7ZiOChqiwJxhKv9jPwH7y90JYaHabN1cA"
 }

@@ -12,6 +12,7 @@ async function updateToday(countries, tab) {
 				country.today.recovered = toNumber(item["TotalRecovered"]);
 				country.today.deaths = toNumber(item["TotalDeaths"]);
 				country.today.sick = toNumber(item["ActiveCases"]);
+				country.today.new = toNumber(item["NewCases"]);
 				break;
 			}
 		}
@@ -29,6 +30,6 @@ async function updateGlobal(global, tab) {
 module.exports = async store => {
 	let tab;
 	tab = (await tabletojson.convertUrl(url))[0];
-	updateToday(store.countries, tab);
+	updateToday(store.countriesWithHistory, tab);
 	updateGlobal(store.global, tab);
 };

@@ -26,9 +26,9 @@ module.exports = async (store) => {
         rawData.toll = await csv(
             Fs.createReadStream("./parsers/files/confirmed.csv")
         );
-        rawData.recovered = await csv(
-            Fs.createReadStream("./parsers/files/recovered.csv")
-        );
+        // rawData.recovered = await csv(
+        //     Fs.createReadStream("./parsers/files/recovered.csv")
+        // );
         rawData.deaths = await csv(
             Fs.createReadStream("./parsers/files/deaths.csv")
         );
@@ -46,7 +46,7 @@ module.exports = async (store) => {
     estimateToday(store,dates);
     toGeoJson(rawData,store);
     //fix names
-    for(let c of store.countries){
+    for(let c of store.countriesWithHistory){
         matchName(c);
     }
 };
@@ -72,8 +72,8 @@ async function downloadFile(baseUrl, filename) {
 function makeHistory(store,rawData,dates) {
     const entries = Object.entries(rawData);
     const global = {
-        today: { toll: 0, recovered: 0, deaths: 0, sick: 0 },
-        history: { toll: {}, recovered: {}, deaths: {}, sick: {} }
+        today: { toll: 0, recovered: 0, deaths: 0, sick: 0, new: 0 },
+        history: { toll: {}, deaths: {} }
     };
     let countries = [];
     let i = 0;
@@ -96,14 +96,14 @@ function makeHistory(store,rawData,dates) {
                     id:i,
                     name:row["Country/Region"],
                     today: { toll: 0, recovered: 0, deaths: 0, sick: 0 },
-                    history: { toll: {}, recovered: {}, deaths: {}, sick: {} }
+                    history: { toll: {}, deaths: {} }
                 };
                 // iterate over dates
                 for(date of dates){
                     newCountry.history.toll[date] = 0;
-                    newCountry.history.recovered[date] = 0;
+                    //newCountry.history.recovered[date] = 0;
                     newCountry.history.deaths[date] = 0;
-                    newCountry.history.sick[date] = 0;
+                    //newCountry.history.sick[date] = 0;
                     if(row[date]) newCountry.history[typeName][date] += Number(row[date]);
                 }
                 countries.push(newCountry);
@@ -111,8 +111,8 @@ function makeHistory(store,rawData,dates) {
             }
         }
     }
-    calculateSick(countries,dates);
-    store.countries = countries;
+    //calculateSick(countries,dates);
+    store.countriesWithHistory = countries;
     store.global = global;
 }
 
@@ -130,16 +130,16 @@ function calculateSick(countries,dates){
 function makeGlobalHistory(store,dates){
     for(let date of dates){
         store.global.history.toll[date] = 0;
-        store.global.history.recovered[date] = 0;
+        //store.global.history.recovered[date] = 0;
         store.global.history.deaths[date] = 0;
-        store.global.history.sick[date] = 0;
+        //store.global.history.sick[date] = 0;
     }
-    for(let country of store.countries){
+    for(let country of store.countriesWithHistory){
         for(let date of dates){
             store.global.history.toll[date] += country.history.toll[date];
-            store.global.history.recovered[date] += country.history.recovered[date];
+            //store.global.history.recovered[date] += country.history.recovered[date];
             store.global.history.deaths[date] += country.history.deaths[date];
-            store.global.history.sick[date] += country.history.sick[date];
+            //store.global.history.sick[date] += country.history.sick[date];
         }
     }
 }
@@ -147,23 +147,25 @@ function makeGlobalHistory(store,dates){
 function estimateToday(store,dates){
     //console.log(store.countries[0].today);
     
-    for(let country of store.countries){
+    for(let country of store.countriesWithHistory){
         
         country.today.toll = country.history.toll[dates[dates.length-1]];
-        country.today.recovered = country.history.recovered[dates[dates.length-1]];
+        //country.today.recovered = country.history.recovered[dates[dates.length-1]];
         country.today.deaths = country.history.deaths[dates[dates.length-1]];
-        country.today.sick = country.history.sick[dates[dates.length-1]];
+        //country.today.sick = country.history.sick[dates[dates.length-1]];
+        country.today.new = country.today.toll - country.history.toll[dates[dates.length-2]];
         
         store.global.today.toll += country.today.toll;
         store.global.today.recovered += country.today.recovered;
         store.global.today.deaths += country.today.deaths;
         store.global.today.sick += country.today.sick;
+        store.global.today.new += country.today.new;
     }
 }
 
 function toGeoJson(rawDataObj, store) {
     let rawToll = rawDataObj.toll;
-    let rawRecovered = rawDataObj.recovered;
+    //let rawRecovered = rawDataObj.recovered;
     let rawDeaths = rawDataObj.deaths;
     let geoJson = {
         type: "FeatureCollection",
@@ -172,7 +174,7 @@ function toGeoJson(rawDataObj, store) {
     let i = 0;
     for (row of rawToll) {
         let thisCountry;
-        for (country of store.countries) {
+        for (country of store.countriesWithHistory) {
             if (row["Country/Region"] === country.name) {
                 thisCountry = country;
                 break;
@@ -180,9 +182,9 @@ function toGeoJson(rawDataObj, store) {
         }
         let tol = Object.values(row);
         let rec = [0];
-        if (rawRecovered[i]) {
-            rec = Object.values(rawRecovered[i]);
-        }
+        // if (rawRecovered[i]) {
+        //     rec = Object.values(rawRecovered[i]);
+        // }
         let ded = [0];
         if (rawDeaths[i]) {
             ded = Object.values(rawDeaths[i]);
@@ -200,9 +202,9 @@ function toGeoJson(rawDataObj, store) {
                           country: row["Country/Region"],
                           countryId: thisCountry.id,
                           toll: thisCountry.today.toll,
-                          recovered: thisCountry.today.recovered,
+                          //recovered: thisCountry.today.recovered,
                           deaths: thisCountry.today.deaths,
-                          sick: null
+                          //sick: null
                       }
                   }
                 : {
@@ -216,14 +218,14 @@ function toGeoJson(rawDataObj, store) {
                           country: row["Country/Region"],
                           countryId: thisCountry.id,
                           toll: Number(tol[tol.length - 1]),
-                          recovered: Number(rec[rec.length - 1]),
+                          //recovered: Number(rec[rec.length - 1]),
                           deaths: Number(ded[ded.length - 1]),
-                          sick: null
+                          //sick: null
                       }
                   };
-        newFeature.properties.sick =
-            newFeature.properties.toll -
-            (newFeature.properties.recovered + newFeature.properties.deaths);
+        // newFeature.properties.sick =
+        //     newFeature.properties.toll -
+        //     (newFeature.properties.recovered + newFeature.properties.deaths);
         geoJson.features.push(newFeature);
         i++;
     }
